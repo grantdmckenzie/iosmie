@@ -42,7 +42,7 @@ button {
 
 
 <div class="chart">
-<div style="width:400px;height:50%;position:absolute;bottom:0px;left:0px;" border="0" id="map"></div>
+<div style="height:50%;position:absolute;border-top:solid 4px rgb(156, 158, 222);;left:0px;bottom:0px" id="map"></div>
 <div id="wrapperYears" style="right:0px;position:absolute;padding:0px;height:20%;bottom:0px;width:300px;overflow:auto;">
   <div style="border-radius:3px;margin-top:5px;padding:5px 10px;color:#fff;font-weight:bold;background-color:rgb(156, 158, 222);width:90%;font-size:1.4em;">Years</div>
   <div id="wrapperYearsContent" style="color:#fff;font-size:1.2em;"></div>
@@ -102,10 +102,10 @@ strokecolor = "#000000";
 var format = d3.time.format("%Y");
 
 var margin = {top: 20, right: 40, bottom: 30, left: 30};
-var width = document.body.clientWidth - margin.left - margin.right - 400;
+var width = document.body.clientWidth - margin.left - margin.right - 300;
 var height = 400 - margin.top - margin.bottom;
 
-$('#map').width(width);
+$('#map').width(width+66);
 //$('#wrapperYears').height(height-20);
 //$('#wrapperYears').width(width/4);
 // $('#wrapperAuthors').height("100%");
