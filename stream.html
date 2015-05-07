@@ -64,17 +64,21 @@ String.prototype.capitalizeFirstLetter = function() {
 
 var url = "http://stko-testing.geog.ucsb.edu:8890/sparql?default-graph-uri=&query=SELECT+%3Fkey+count%28%3Fdate%29+as+%3Fvalue+%3Fdate%0D%0AWHERE+%7B%0D%0A++%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.+%0D%0A++%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fc+.%0D%0A++%3Fc+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A++%7B%0D%0A++++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A++%7D%0D%0A%7D+group+by+%3Fkey+%3Fdate+order+by+asc%28%3Fkey%29+%3Fdate&format=text%2Fcsv&timeout=0&debug=on";
 
+var urlyear = "http://stko-testing.geog.ucsb.edu:8890/sparql?default-graph-uri=&query=select+%3Fkey+%3Fdate+count%28%3Fkey%29+as+%3Fcount+WHERE+%7B%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%09%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A%09%7B%0D%0A++++%09select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A++++%7D%0D%0A%7D+group+by+%3Fkey+%3Fdate+order+by+%3Fkey+%3Fdate&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
 
-var urldetails = "http://stko-testing.geog.ucsb.edu:8890/sparql?default-graph-uri=&query=select+%3Fkey+%3Ftitle+%3Fdate+%3Fauthorname+WHERE%7B%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Ftitle%3E+%3Ftitle+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fcreator%3E+%3Fauthor+.%0D%0A%3Fauthor+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2Fname%3E+%3Fauthorname+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A+++%7B%0D%0A++++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+30%0D%0A+++%7D%0D%0A%7D%0D%0Aorder+by+%3Fkey&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
+
+var urldetails = "http://stko-testing.geog.ucsb.edu:8890/sparql?default-graph-uri=&query=select+%3Fkey+%3Ftitle+%3Fdate+%3Fauthorname+WHERE%7B%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Ftitle%3E+%3Ftitle+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fcreator%3E+%3Fauthor+.%0D%0A%3Fauthor+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2Fname%3E+%3Fauthorname+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A+++%7B%0D%0A++++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A+++%7D%0D%0A%7D%0D%0Aorder+by+%3Fkey&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
 
 chart(url, "blue");
 loadDetails(urldetails);
+loadYears(urlyear);
 
 var datearray = [];
 var colorrange = [];
 var authors = {};
 var years = {};
 var title = {};
+var _years = {};
 
 var worldMap = SimpleMapD3({
     container: '#map',
@@ -214,12 +218,14 @@ var xAxis = d3.svg.axis()
   x.domain(d3.extent(data, function(d) { return d.date; }));
   y.domain([0, d3.max(data, function(d) { return d.y0 + d.y; })]);
 
+  var tmp = shuffle(z.range());
+
   svg.selectAll(".layer")
       .data(layers)
     .enter().append("path")
       .attr("class", "layer")
       .attr("d", function(d) { return area(d.values); })
-      .style("fill", function(d, i) { return z(i); });
+      .style("fill", function(d, i) { return tmp[i]; }); // replaced "i"
 
 
   svg.append("g")
@@ -313,7 +319,6 @@ var xAxis = d3.svg.axis()
 function backFillData(data, data_years) {
 
   var unique = data_years.filter( onlyUnique ); 
-  unique.push("2015");
   unique.push("2001");
   unique.sort();
   var outputdata = [];
@@ -330,6 +335,29 @@ function backFillData(data, data_years) {
 }
 function onlyUnique(value, index, self) { 
     return self.indexOf(value) === index;
+}
+
+
+function loadYears(years) {
+  $.ajax({
+      type: "GET",
+      url: years,
+      dataType: "json",
+      success: function(data) {
+          var x = data.results.bindings;
+          for(var i=0;i<x.length;i++) {
+              var a = x[i].date.value;
+              if (_years[x[i].key.value]) {
+                  _years[x[i].key.value][a] = x[i].count.value;
+
+              } else {
+                _years[x[i].key.value] = {};
+                _years[x[i].key.value][a] = x[i].count.value;
+              }
+          }
+      }
+  });
+
 }
 
 function loadDetails(details) {
@@ -388,10 +416,10 @@ function loadDetails(details) {
 
 function displayDetails(key, date) {
   var yearscontent = "";
-  for(var prop in years) {
+  for(var prop in _years) {
     if (key == prop) {
-      for(var p in years[prop]) {
-        yearscontent += "<div style='padding:5px 10px;margin-top:1px;width:90%;border-radius:3px;background-color:#111;'><span style='font-weight:bold;color:rgb(156, 158, 222)'>"+p+": </span> " + years[prop][p] + "</div>";
+      for(var p in _years[prop]) {
+        yearscontent += "<div style='padding:5px 10px;margin-top:1px;width:90%;border-radius:3px;background-color:#111;'><span style='font-weight:bold;color:rgb(156, 158, 222)'>"+p+": </span> " + _years[prop][p] + "</div>";
       }
     }
   }
@@ -424,6 +452,25 @@ function displayDetails(key, date) {
     }
   }
   $('#wrapperPaperContent').html(papercontent);
+}
+
+function shuffle(array) {
+  var currentIndex = array.length, temporaryValue, randomIndex ;
+
+  // While there remain elements to shuffle...
+  while (0 !== currentIndex) {
+
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+
+    // And swap it with the current element.
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
 }
 
 </script>
