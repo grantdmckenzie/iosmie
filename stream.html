@@ -10,16 +10,24 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 <script src="d3.min.js"></script>
 <script src="http://d3js.org/d3.geo.projection.v0.min.js"></script>
-<script src="topojson.js" charset="utf-8"></script>
+
 <script src="simple-map-d3.js"></script>
+<!-- <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.3/d3.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/topojson/1.6.9/topojson.min.js"></script> -->
+<script src="topojson.js" charset="utf-8"></script>
+<script src="datamaps.world.min.js"></script>
+<script src="countries.js"></script>
+<script>
+    
+</script>
 <script>
 
 
 
 // Global variables
-var _STREAMGRAPH = {urls:{}, data:{years:{},authors:{},titles:{}}};
+var _STREAMGRAPH = {urls:{}, data:{years:{},authors:{},titles:{},countries:{}}};
 _STREAMGRAPH.endpoint = "http://stko-testing.geog.ucsb.edu:8890/sparql";
-
+_STREAMGRAPH.limit = 20;
 
 _STREAMGRAPH.setUpHTMLContainers = function(container) {
     var content = "";
@@ -118,6 +126,33 @@ _STREAMGRAPH.loadTitles = function() {
   });
 }
 
+_STREAMGRAPH.loadCountries = function() {
+  $.ajax({
+      type: "GET",
+      url: _STREAMGRAPH.urls.countries,
+      dataType: "json",
+      success: function(data) {
+          var x = data.results.bindings;
+          for(var i=0;i<x.length;i++) {
+              var a = x[i].date.value;
+              if (_STREAMGRAPH.data.countries[x[i].key.value]) {
+		  if(_STREAMGRAPH.data.countries[x[i].key.value][a])
+		    _STREAMGRAPH.data.countries[x[i].key.value][a].push([x[i].org.value,x[i].count.value]);
+		  else
+		    _STREAMGRAPH.data.countries[x[i].key.value][a] = [[x[i].org.value,x[i].count.value]];
+
+              } else {
+                _STREAMGRAPH.data.countries[x[i].key.value] = [];
+                _STREAMGRAPH.data.countries[x[i].key.value][a] = [[x[i].org.value,x[i].count.value]];
+              }
+          }
+      },
+      error: function(a,b,c) {
+	  _STREAMGRAPH.error(a,b,c);
+      }
+  });
+}
+
 _STREAMGRAPH.setUpHTMLContainers("container");
 
 // Camel Case that $hiznat
@@ -129,19 +164,24 @@ String.prototype.capitalizeFirstLetter = function() {
 
 var url = _STREAMGRAPH.endpoint+"?default-graph-uri=&query=SELECT+%3Fkey+count%28%3Fdate%29+as+%3Fvalue+%3Fdate%0D%0AWHERE+%7B%0D%0A++%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.+%0D%0A++%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fc+.%0D%0A++%3Fc+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A++%7B%0D%0A++++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A++%7D%0D%0A%7D+group+by+%3Fkey+%3Fdate+order+by+asc%28%3Fkey%29+%3Fdate&format=text%2Fcsv&timeout=0&debug=on";
 
-_STREAMGRAPH.urls.years = _STREAMGRAPH.endpoint+"?default-graph-uri=&query=select+%3Fkey+%3Fdate+count%28%3Fkey%29+as+%3Fcount+WHERE+%7B%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%09%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A%09%7B%0D%0A++++%09select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A++++%7D%0D%0A%7D+group+by+%3Fkey+%3Fdate+order+by+%3Fkey+%3Fdate&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
+_STREAMGRAPH.urls.years = _STREAMGRAPH.endpoint+"?default-graph-uri=&query=select+%3Fkey+%3Fdate+count%28%3Fkey%29+as+%3Fcount+WHERE+%7B%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%09%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A%09%7B%0D%0A++++%09select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+"+_STREAMGRAPH.limit+"%0D%0A++++%7D%0D%0A%7D+group+by+%3Fkey+%3Fdate+order+by+%3Fkey+%3Fdate&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
 
-_STREAMGRAPH.urls.authors = _STREAMGRAPH.endpoint+"?default-graph-uri=&query=select+%3Fkey+%3Fdate+%3Fauthor+count%28%3Fauthor%29+as+%3Fcount+WHERE+%7B%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fcreator%3E+%3Fc+.%0D%0A%09%3Fc+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2Fname%3E+%3Fauthor+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%09%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A%09%7B%0D%0A%09++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A%09%7D%0D%0A%7D+group+by+%3Fkey+%3Fdate+%3Fauthor+order+by+%3Fkey+%3Fdate+desc%28%3Fcount%29&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
+_STREAMGRAPH.urls.authors = _STREAMGRAPH.endpoint+"?default-graph-uri=&query=select+%3Fkey+%3Fdate+%3Fauthor+count%28%3Fauthor%29+as+%3Fcount+WHERE+%7B%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fcreator%3E+%3Fc+.%0D%0A%09%3Fc+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2Fname%3E+%3Fauthor+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%09%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A%09%7B%0D%0A%09++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+"+_STREAMGRAPH.limit+"%0D%0A%09%7D%0D%0A%7D+group+by+%3Fkey+%3Fdate+%3Fauthor+order+by+%3Fkey+%3Fdate+desc%28%3Fcount%29&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
 
-_STREAMGRAPH.urls.titles = _STREAMGRAPH.endpoint+"?default-graph-uri=&query=select+%3Fkey+%3Fdate+%3Ftitle+WHERE+%7B%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Ftitle%3E+%3Ftitle+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%09%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A%09%7B%0D%0A%09++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A%09%7D%0D%0A%7D+order+by+%3Fkey+%3Fdate+%3Ftitle&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
+_STREAMGRAPH.urls.titles = _STREAMGRAPH.endpoint+"?default-graph-uri=&query=select+%3Fkey+%3Fdate+%3Ftitle+WHERE+%7B%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Ftitle%3E+%3Ftitle+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%09%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A%09%7B%0D%0A%09++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+"+_STREAMGRAPH.limit+"%0D%0A%09%7D%0D%0A%7D+order+by+%3Fkey+%3Fdate+%3Ftitle&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
 
-var urldetails = _STREAMGRAPH.endpoint+"?default-graph-uri=&query=select+%3Fkey+%3Ftitle+%3Fdate+%3Fauthorname+WHERE%7B%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Ftitle%3E+%3Ftitle+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fcreator%3E+%3Fauthor+.%0D%0A%3Fauthor+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2Fname%3E+%3Fauthorname+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A+++%7B%0D%0A++++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A+++%7D%0D%0A%7D%0D%0Aorder+by+%3Fkey&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
+_STREAMGRAPH.urls.countries = _STREAMGRAPH.endpoint+"?default-graph-uri=&query=select+%3Fkey+%3Fdate+%3Forg+count%28%3Forg%29+as+%3Fcount+WHERE+%7B%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fcreator%3E+%3Fauthor+.%0D%0A++++++++%3Fauthor+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2Fname%3E+%3Fauthorname+.%0D%0A++++++++%3Fauthor+%3Chttp%3A%2F%2Fstko-geog.ucsb.edu%2Font%2Fmiecountry%3E+%3Forg+.%0D%0A++++++++%3Fauthor+geo%3Alat+%3Flat+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%09%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A%09%7B%0D%0A%09++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+"+_STREAMGRAPH.limit+"%0D%0A%09%7D%0D%0A%7D+group+by+%3Fkey+%3Fdate+%3Forg+order+by+%3Fkey+%3Fdate+%3Forg&format=application%2Fsparql-results%2Bjson&timeout=0&debug=onn";
+
+var urldetails = _STREAMGRAPH.endpoint+"?default-graph-uri=&query=select+%3Fkey+%3Ftitle+%3Fdate+%3Fauthorname+WHERE%7B%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Ftitle%3E+%3Ftitle+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fcreator%3E+%3Fauthor+.%0D%0A%3Fauthor+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2Fname%3E+%3Fauthorname+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A+++%7B%0D%0A++++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+"+_STREAMGRAPH.limit+"%0D%0A+++%7D%0D%0A%7D%0D%0Aorder+by+%3Fkey&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
 
 chart(url, "blue");
 // loadDetails(urldetails);
 _STREAMGRAPH.loadYears();
 _STREAMGRAPH.loadAuthors();
 _STREAMGRAPH.loadTitles();
+_STREAMGRAPH.loadCountries();
+
+var map = new Datamap({element: document.getElementById('map')});
 
 var datearray = [];
 var colorrange = [];
@@ -149,7 +189,7 @@ var authors = {};
 var years = {};
 var title = {};
 
-var worldMap = SimpleMapD3({
+/*var worldMap = SimpleMapD3({
     container: '#map',
     datasource: 'world-population.geo.json',
     projection: 'nellHammer',
@@ -159,12 +199,24 @@ var worldMap = SimpleMapD3({
     colorScale: 'quantize',
     tooltipOn: false,
     //graticuleOn: false,
+    //canvasDragOn: true,
     globeOn: false,
     legendOn: false,
     startManually: true
   }).start();
+*/
+$('body').on('click',function() {
+  for(var i in countries) {
+    var y = _STREAMGRAPH.data.countries;
+    if (countries[i].countryName == "Canada") {
+	var x = {};
+	x[countries[i].iso3] = "#fff";
+        map.updateChoropleth(x);
+    }
+  }
 
-
+});
+  
 function chart(csvpath, color) {
 
 strokecolor = "#000000";
@@ -472,6 +524,24 @@ function displayDetails(key, date) {
     }
   }
   $('#wrapperPaperContent').html(titlecontent);
+  
+  for(var prop in _STREAMGRAPH.data.countries) {
+    if (key == prop) {
+      for(var p in _STREAMGRAPH.data.countries[prop]) {
+	if (date == p) {
+	  for(var i=0;i<_STREAMGRAPH.data.countries[prop][p].length;i++) {
+	    for(var j=0;j<countries.length;j++) {
+	      if(countries[j].countryName == _STREAMGRAPH.data.countries[prop][p][i][0]) {
+		var x = {};
+		x[countries[j].iso3] = "#fff";
+		map.updateChoropleth(x);
+	      }
+	    }
+	  }
+	}
+      }
+    }
+   }
 }
 
 // shuffle the colors
