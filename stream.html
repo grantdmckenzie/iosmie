@@ -1,84 +1,153 @@
-
 <!DOCTYPE html>
-<meta charset="utf-8">
-<link href='http://fonts.googleapis.com/css?family=Muli' rel='stylesheet' type='text/css'>
-<link rel="stylesheet" href="simple-map-d3.css">
-<style>
+  <head>
+    <meta charset="utf-8">
+    <link href='http://fonts.googleapis.com/css?family=Muli' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="simple-map-d3.css">
+  </head>
+<body style="margin:0;position:absolute;height:100%;width:100%;font-size:12px;background-color:#000;font-family: 'Muli', sans-serif;">
+<div style="height:100%;width:100%;position:absolute;" id="container"></div>
 
-body {
-  font: 10px sans-serif;
-}
-
-.chart { 
-  background: #000;
-}
-
-p {
-  font: 12px helvetica;
-}
-
-
-.axis path, .axis line {
-  fill: none;
-  stroke: #000;
-  stroke-width: 2px;
-  shape-rendering: crispEdges;
-}
-
-button {
-  position: absolute;
-  right: 50px;
-  top: 10px;
-}
-
-</style>
-<body style="font-size:12px;background-color:#000;font-family: 'Muli', sans-serif;">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 <script src="d3.min.js"></script>
 <script src="http://d3js.org/d3.geo.projection.v0.min.js"></script>
-
 <script src="topojson.js" charset="utf-8"></script>
 <script src="simple-map-d3.js"></script>
-
-
-<div class="chart">
-<div style="height:50%;position:absolute;border-top:solid 4px rgb(156, 158, 222);;left:0px;bottom:0px" id="map"></div>
-<div id="wrapperYears" style="right:0px;position:absolute;padding:0px;height:20%;bottom:0px;width:300px;overflow:auto;">
-  <div style="border-radius:3px;margin-top:5px;padding:5px 10px;color:#fff;font-weight:bold;background-color:rgb(156, 158, 222);width:90%;font-size:1.4em;">Years</div>
-  <div id="wrapperYearsContent" style="color:#fff;font-size:1.2em;"></div>
-</div>
-<div id="wrapperAuthors" style="right:0px;position:absolute;padding:0px;height:50%;top:0px;width:300px;overflow:auto;">
-  <div style="border-radius:3px;margin-top:5px;padding:5px 10px;color:#fff;font-weight:bold;background-color:rgb(156, 158, 222);width:90%;font-size:1.4em;">Authors</div>
-  <div id="wrapperAuthorsContent" style="color:#fff;font-size:1.2em;overflow:auto;"></div>
-</div>
-<div id="wrapperPapers" style="right:0px;position:absolute;padding:0px;height:30%;top:50%;width:300px;overflow:auto;">
-  <div style="border-radius:3px;margin-top:5px;padding:5px 10px;color:#fff;font-weight:bold;background-color:rgb(156, 158, 222);width:90%;font-size:1.4em;">Papers</div>
-  <div id="wrapperPaperContent" style="color:#fff;font-size:1.2em;overflow:auto;"></div>
-</div>
-
 <script>
 
+
+
+// Global variables
+var _STREAMGRAPH = {urls:{}, data:{years:{},authors:{},titles:{}}};
+_STREAMGRAPH.endpoint = "http://stko-testing.geog.ucsb.edu:8890/sparql";
+
+
+_STREAMGRAPH.setUpHTMLContainers = function(container) {
+    var content = "";
+    content += '<div style="height:50%;overflow:auto" class="chart"></div>';
+    content += '<div style="height:50%;position:absolute;border-top:solid 4px rgb(156, 158, 222);;left:0px;bottom:0px" id="map"></div>';
+    content += '<div id="wrapperYears" style="right:0px;position:absolute;padding:0px;height:20%;bottom:0px;width:300px;overflow:auto;">';
+    content += '	<div style="border-radius:3px;margin-top:5px;padding:5px 10px;color:#fff;font-weight:bold;background-color:rgb(156, 158, 222);width:90%;font-size:1.4em;">Years</div>';
+    content += '	<div id="wrapperYearsContent" style="color:#fff;font-size:1.2em;"><img style="margin:40%;" src="loading.gif"/></div></div>';
+    content += '<div id="wrapperAuthors" style="right:0px;position:absolute;padding:0px;height:50%;top:0px;width:300px;overflow:auto;">';
+    content += '<div style="border-radius:3px;margin-top:5px;padding:5px 10px;color:#fff;font-weight:bold;background-color:rgb(156, 158, 222);width:90%;font-size:1.4em;">Authors <span class="authoryear"></span></div>';
+    content += '<div id="wrapperAuthorsContent" style="color:#fff;font-size:1.2em;overflow:auto;"></div></div>';
+    content += '<div id="wrapperPapers" style="right:0px;position:absolute;padding:0px;height:30%;top:50%;width:300px;overflow:auto;">';
+    content += '<div style="border-radius:3px;margin-top:5px;padding:5px 10px;color:#fff;font-weight:bold;background-color:rgb(156, 158, 222);width:90%;font-size:1.4em;">Papers <span class="authoryear"></div>';
+    content += '<div id="wrapperPaperContent" style="color:#fff;font-size:1.2em;overflow:auto;"></div></div>';
+    $('#container').html(content);
+}
+
+_STREAMGRAPH.error = function(a,b,c) {
+  alert('error');
+}
+
+_STREAMGRAPH.loadYears = function() {
+  $.ajax({
+      type: "GET",
+      url: _STREAMGRAPH.urls.years,
+      dataType: "json",
+      success: function(data) {
+          var x = data.results.bindings;
+          for(var i=0;i<x.length;i++) {
+              var a = x[i].date.value;
+              if (_STREAMGRAPH.data.years[x[i].key.value]) {
+                  _STREAMGRAPH.data.years[x[i].key.value][a] = x[i].count.value;
+
+              } else {
+                _STREAMGRAPH.data.years[x[i].key.value] = {};
+                _STREAMGRAPH.data.years[x[i].key.value][a] = x[i].count.value;
+              }
+          }
+      },
+      error: function(a,b,c) {
+	  _STREAMGRAPH.error(a,b,c);
+      }
+  });
+}
+
+_STREAMGRAPH.loadAuthors = function() {
+  $.ajax({
+      type: "GET",
+      url: _STREAMGRAPH.urls.authors,
+      dataType: "json",
+      success: function(data) {
+          var x = data.results.bindings;
+          for(var i=0;i<x.length;i++) {
+              var a = x[i].date.value;
+              if (_STREAMGRAPH.data.authors[x[i].key.value]) {
+		  if(_STREAMGRAPH.data.authors[x[i].key.value][a])
+		    _STREAMGRAPH.data.authors[x[i].key.value][a].push([x[i].author.value,x[i].count.value]);
+		  else
+		    _STREAMGRAPH.data.authors[x[i].key.value][a] = [[x[i].author.value,x[i].count.value]];
+
+              } else {
+                _STREAMGRAPH.data.authors[x[i].key.value] = [];
+                _STREAMGRAPH.data.authors[x[i].key.value][a] = [[x[i].author.value,x[i].count.value]];
+              }
+          }
+      },
+      error: function(a,b,c) {
+	  _STREAMGRAPH.error(a,b,c);
+      }
+  });
+}
+
+_STREAMGRAPH.loadTitles = function() {
+  $.ajax({
+      type: "GET",
+      url: _STREAMGRAPH.urls.titles,
+      dataType: "json",
+      success: function(data) {
+          var x = data.results.bindings;
+          for(var i=0;i<x.length;i++) {
+              var a = x[i].date.value;
+              if (_STREAMGRAPH.data.titles[x[i].key.value]) {
+                  if(_STREAMGRAPH.data.titles[x[i].key.value][a])
+		    _STREAMGRAPH.data.titles[x[i].key.value][a].push(x[i].title.value);
+		  else
+		    _STREAMGRAPH.data.titles[x[i].key.value][a] = [[x[i].title.value]];
+              } else {
+                _STREAMGRAPH.data.titles[x[i].key.value] = {};
+                _STREAMGRAPH.data.titles[x[i].key.value][a] = [[x[i].title.value]];
+              }
+          }
+      },
+      error: function(a,b,c) {
+	  _STREAMGRAPH.error(a,b,c);
+      }
+  });
+}
+
+_STREAMGRAPH.setUpHTMLContainers("container");
+
+// Camel Case that $hiznat
 String.prototype.capitalizeFirstLetter = function() {
     return this.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
 }
 
-var url = "http://stko-testing.geog.ucsb.edu:8890/sparql?default-graph-uri=&query=SELECT+%3Fkey+count%28%3Fdate%29+as+%3Fvalue+%3Fdate%0D%0AWHERE+%7B%0D%0A++%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.+%0D%0A++%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fc+.%0D%0A++%3Fc+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A++%7B%0D%0A++++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A++%7D%0D%0A%7D+group+by+%3Fkey+%3Fdate+order+by+asc%28%3Fkey%29+%3Fdate&format=text%2Fcsv&timeout=0&debug=on";
-
-var urlyear = "http://stko-testing.geog.ucsb.edu:8890/sparql?default-graph-uri=&query=select+%3Fkey+%3Fdate+count%28%3Fkey%29+as+%3Fcount+WHERE+%7B%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%09%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A%09%7B%0D%0A++++%09select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A++++%7D%0D%0A%7D+group+by+%3Fkey+%3Fdate+order+by+%3Fkey+%3Fdate&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
 
 
-var urldetails = "http://stko-testing.geog.ucsb.edu:8890/sparql?default-graph-uri=&query=select+%3Fkey+%3Ftitle+%3Fdate+%3Fauthorname+WHERE%7B%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Ftitle%3E+%3Ftitle+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fcreator%3E+%3Fauthor+.%0D%0A%3Fauthor+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2Fname%3E+%3Fauthorname+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A+++%7B%0D%0A++++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A+++%7D%0D%0A%7D%0D%0Aorder+by+%3Fkey&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
+var url = _STREAMGRAPH.endpoint+"?default-graph-uri=&query=SELECT+%3Fkey+count%28%3Fdate%29+as+%3Fvalue+%3Fdate%0D%0AWHERE+%7B%0D%0A++%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.+%0D%0A++%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fc+.%0D%0A++%3Fc+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A++%7B%0D%0A++++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A++%7D%0D%0A%7D+group+by+%3Fkey+%3Fdate+order+by+asc%28%3Fkey%29+%3Fdate&format=text%2Fcsv&timeout=0&debug=on";
+
+_STREAMGRAPH.urls.years = _STREAMGRAPH.endpoint+"?default-graph-uri=&query=select+%3Fkey+%3Fdate+count%28%3Fkey%29+as+%3Fcount+WHERE+%7B%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%09%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A%09%7B%0D%0A++++%09select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A++++%7D%0D%0A%7D+group+by+%3Fkey+%3Fdate+order+by+%3Fkey+%3Fdate&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
+
+_STREAMGRAPH.urls.authors = _STREAMGRAPH.endpoint+"?default-graph-uri=&query=select+%3Fkey+%3Fdate+%3Fauthor+count%28%3Fauthor%29+as+%3Fcount+WHERE+%7B%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fcreator%3E+%3Fc+.%0D%0A%09%3Fc+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2Fname%3E+%3Fauthor+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%09%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A%09%7B%0D%0A%09++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A%09%7D%0D%0A%7D+group+by+%3Fkey+%3Fdate+%3Fauthor+order+by+%3Fkey+%3Fdate+desc%28%3Fcount%29&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
+
+_STREAMGRAPH.urls.titles = _STREAMGRAPH.endpoint+"?default-graph-uri=&query=select+%3Fkey+%3Fdate+%3Ftitle+WHERE+%7B%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Ftitle%3E+%3Ftitle+.%0D%0A%09%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%09%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A%09%7B%0D%0A%09++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A%09%7D%0D%0A%7D+order+by+%3Fkey+%3Fdate+%3Ftitle&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
+
+var urldetails = _STREAMGRAPH.endpoint+"?default-graph-uri=&query=select+%3Fkey+%3Ftitle+%3Fdate+%3Fauthorname+WHERE%7B%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Ftitle%3E+%3Ftitle+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fcreator%3E+%3Fauthor+.%0D%0A%3Fauthor+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2Fname%3E+%3Fauthorname+.%0D%0A%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fontology%2Fbibo%2FpresentedAt%3E+%3Fpresented+.%0D%0A%3Fpresented+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Felements%2F1.1%2Fdate%3E+%3Fdate%0D%0A+++%7B%0D%0A++++select+%3Fkey+count%28%3Fkey%29+as+%3Fcnt2+where+%7B%3Fa+%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2Fsubject%3E+%3Fkey%7D+group+by+%3Fkey+order+by+desc%28%3Fcnt2%29+limit+20%0D%0A+++%7D%0D%0A%7D%0D%0Aorder+by+%3Fkey&format=application%2Fsparql-results%2Bjson&timeout=0&debug=on";
 
 chart(url, "blue");
-loadDetails(urldetails);
-loadYears(urlyear);
+// loadDetails(urldetails);
+_STREAMGRAPH.loadYears();
+_STREAMGRAPH.loadAuthors();
+_STREAMGRAPH.loadTitles();
 
 var datearray = [];
 var colorrange = [];
 var authors = {};
 var years = {};
 var title = {};
-var _years = {};
 
 var worldMap = SimpleMapD3({
     container: '#map',
@@ -98,26 +167,14 @@ var worldMap = SimpleMapD3({
 
 function chart(csvpath, color) {
 
-if (color == "blue") {
-  colorrange = ["#B30000", "#E34A33", "#FC8D59", "#FDBB84", "#FDD49E", "#FEF0D9","#045A8D", "#2B8CBE", "#74A9CF", "#A6BDDB", "#D0D1E6", "#F1EEF6","#980043", "#DD1C77", "#DF65B0", "#C994C7", "#D4B9DA", "#F1EEF6"];
-}
 strokecolor = "#000000";
 
 var format = d3.time.format("%Y");
 
-var margin = {top: 20, right: 40, bottom: 30, left: 30};
-var width = document.body.clientWidth - margin.left - margin.right - 300;
-var height = 400 - margin.top - margin.bottom;
+var width = document.body.clientWidth - 300;
+var height = document.body.clientHeight / 2 - 20;
 
 $('#map').width(width+66);
-//$('#wrapperYears').height(height-20);
-//$('#wrapperYears').width(width/4);
-// $('#wrapperAuthors').height("100%");
-// $('#wrapperAuthors').css('left',width/4);
-// $('#wrapperAuthors').width(width/4);
-//$('#wrapperTitles').height(height-20);
-//$('#wrapperTitles').css('left',width/4*2);
-//$('#wrapperTitles').width(width/4);
 
 var tooltip = d3.select("body")
     .append("div")
@@ -134,11 +191,7 @@ var x = d3.scale.linear() //d3.time.scale()
 var y = d3.scale.linear()
     .range([height-10, 0]);
 
-var z = d3.scale.category20b(); //d3.scale.ordinal()
-    //.range(colorrange);
-
-
-
+var z = d3.scale.category20b(); 
 var yAxis = d3.svg.axis()
     .scale(y);
 
@@ -165,10 +218,10 @@ var area = d3.svg.area()
     .y1(function(d) { return y(d.y0 + d.y); });
 
 var svg = d3.select(".chart").append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
+    .attr("width", width)
+    .attr("height", height)
   .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    .attr("transform", "translate(" + 10 + "," + 10 + ")");
 
 var dataJSON = {};
 var data_years = [];
@@ -190,7 +243,6 @@ var graph = d3.csv(csvpath, function(data) {
   });
 
   var unique = data_years.filter( onlyUnique ); 
-  unique.push("2015");
   unique.push("2001");
   unique.sort();
   intyears = [];
@@ -278,7 +330,7 @@ var xAxis = d3.svg.axis()
       tooltip.style("left",mx+"px");
       tooltip.style("top",my+"px");
       tooltip.html( "<div style='background-color:#fff;border-radius:3px;padding:10px;20px;font-size:1.3em;width:250px'>Keyword:<b> " + d.key + "</b><br/>Year: " + yr+ "<br/>Count: " + pro + "</div>" ).style("visibility", "visible");
-      displayDetails(d.key, d.date);
+      displayDetails(d.key, yr);
       
     })
     .on("mouseout", function(d, i) {
@@ -338,27 +390,7 @@ function onlyUnique(value, index, self) {
 }
 
 
-function loadYears(years) {
-  $.ajax({
-      type: "GET",
-      url: years,
-      dataType: "json",
-      success: function(data) {
-          var x = data.results.bindings;
-          for(var i=0;i<x.length;i++) {
-              var a = x[i].date.value;
-              if (_years[x[i].key.value]) {
-                  _years[x[i].key.value][a] = x[i].count.value;
 
-              } else {
-                _years[x[i].key.value] = {};
-                _years[x[i].key.value][a] = x[i].count.value;
-              }
-          }
-      }
-  });
-
-}
 
 function loadDetails(details) {
   $.ajax({
@@ -382,19 +414,6 @@ function loadDetails(details) {
               authors[x[i].key.value] = {};
               authors[x[i].key.value][a] = 1;
             }
-            // Years
-            a = x[i].date.value;
-            if (years[x[i].key.value]) {
-                if (years[x[i].key.value][a]) {
-                  years[x[i].key.value][a] += 1;
-                } else {
-                  years[x[i].key.value][a] = 1;
-                }
-
-            } else {
-              years[x[i].key.value] = {};
-              years[x[i].key.value][a] = 1;
-            }
             // Paper Titles
             a = x[i].title.value;
             if (title[x[i].key.value]) {
@@ -416,44 +435,46 @@ function loadDetails(details) {
 
 function displayDetails(key, date) {
   var yearscontent = "";
-  for(var prop in _years) {
+  for(var prop in _STREAMGRAPH.data.years) {
     if (key == prop) {
-      for(var p in _years[prop]) {
-        yearscontent += "<div style='padding:5px 10px;margin-top:1px;width:90%;border-radius:3px;background-color:#111;'><span style='font-weight:bold;color:rgb(156, 158, 222)'>"+p+": </span> " + _years[prop][p] + "</div>";
+      for(var p in _STREAMGRAPH.data.years[prop]) {
+        yearscontent += "<div style='padding:5px 10px;margin-top:1px;width:90%;border-radius:3px;background-color:#111;'><span style='font-weight:bold;color:rgb(156, 158, 222)'>"+p+": </span> " + _STREAMGRAPH.data.years[prop][p] + "</div>";
       }
     }
   }
   $('#wrapperYearsContent').html(yearscontent);
 
   var authorcontent = "";
-  for(var prop in authors) {
+  for(var prop in _STREAMGRAPH.data.authors) {
     if (key == prop) {
-      var sortable = [];
-      var aa = authors[prop];
-      for (var p in aa)
-          sortable.push([p, aa[p]])
-      sortable.sort(function(a, b) {return b[1] - a[1]})
-
-      for(var i=0;i<sortable.length;i++) {
-          authorcontent += "<div style='padding:5px 10px;margin-top:1px;width:90%;border-radius:3px;background-color:#111;'><span style='font-weight:bold;color:rgb(156, 158, 222)'>"+sortable[i][0].capitalizeFirstLetter()+": </span> " + sortable[0][1] + "</div>";
-        
+      for(var p in _STREAMGRAPH.data.authors[prop]) {
+	if (date == p) {
+	  for(var i=0;i<_STREAMGRAPH.data.authors[prop][p].length;i++) {
+	    authorcontent += "<div style='padding:5px 10px;margin-top:1px;width:90%;border-radius:3px;background-color:#111;'><span style='font-weight:bold;color:rgb(156, 158, 222)'>"+_STREAMGRAPH.data.authors[prop][p][i][0].capitalizeFirstLetter()+": </span> " + _STREAMGRAPH.data.authors[prop][p][i][1] + "</div>";
+          }
+	}
       }
     }
   }
+  $('.authoryear').html("("+date+")");
   $('#wrapperAuthorsContent').html(authorcontent);
 
-  var papercontent = "";
-  for(var prop in title) {
+  var titlecontent = "";
+  for(var prop in _STREAMGRAPH.data.titles) {
     if (key == prop) {
-
-      for(var p in title[prop]) {
-        papercontent += "<div style='padding:5px 10px;margin-top:1px;width:90%;border-radius:3px;background-color:#111;'>"+p+"</div>";
+      for(var p in _STREAMGRAPH.data.titles[prop]) {
+	if (date == p) {
+	  for(var i=0;i<_STREAMGRAPH.data.titles[prop][p].length;i++) {
+	    titlecontent += "<div style='padding:5px 10px;margin-top:1px;width:90%;border-radius:3px;background-color:#111;'>"+_STREAMGRAPH.data.titles[prop][p][i]+"</div>";
+          }
+	}
       }
     }
   }
-  $('#wrapperPaperContent').html(papercontent);
+  $('#wrapperPaperContent').html(titlecontent);
 }
 
+// shuffle the colors
 function shuffle(array) {
   var currentIndex = array.length, temporaryValue, randomIndex ;
 
