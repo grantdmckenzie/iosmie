@@ -28,11 +28,13 @@
 var _STREAMGRAPH = {urls:{}, data:{years:{},authors:{},titles:{},countries:{}}};
 _STREAMGRAPH.endpoint = "http://stko-testing.geog.ucsb.edu:8890/sparql";
 _STREAMGRAPH.limit = 20;
+_STREAMGRAPH.loadcnt = 0;
 
 _STREAMGRAPH.setUpHTMLContainers = function(container) {
     var content = "";
-    content += '<div style="height:50%;overflow:auto" class="chart"></div>';
-    content += '<div style="height:50%;position:absolute;border-top:solid 4px rgb(156, 158, 222);;left:0px;bottom:0px" id="map"></div>';
+    content += '<div style="height:50%;overflow:hidden;position:absolute;top:5%;" class="chart"></div>';
+    content += '<div style="position:absolute;height:5%;overflow:hidden;top:0px;padding-top:8px;font-size:1.3em;background-color:#000;margin:2px;border-radius:3px;" id="timewrapper"></div>';
+    content += '<div style="height:45%;top:55%;position:absolute;overflow:hidden" id="map"></div>';
     content += '<div id="wrapperYears" style="right:0px;position:absolute;padding:0px;height:20%;bottom:0px;width:300px;overflow:auto;">';
     content += '	<div style="border-radius:3px;margin-top:5px;padding:5px 10px;color:#fff;font-weight:bold;background-color:rgb(156, 158, 222);width:90%;font-size:1.4em;">Years</div>';
     content += '	<div id="wrapperYearsContent" style="color:#fff;font-size:1.2em;"><img style="margin:40%;" src="loading.gif"/></div></div>';
@@ -42,11 +44,20 @@ _STREAMGRAPH.setUpHTMLContainers = function(container) {
     content += '<div id="wrapperPapers" style="right:0px;position:absolute;padding:0px;height:30%;top:50%;width:300px;overflow:auto;">';
     content += '<div style="border-radius:3px;margin-top:5px;padding:5px 10px;color:#fff;font-weight:bold;background-color:rgb(156, 158, 222);width:90%;font-size:1.4em;">Papers <span class="authoryear"></div>';
     content += '<div id="wrapperPaperContent" style="color:#fff;font-size:1.2em;overflow:auto;"></div></div>';
+    content += '<div style="opacity: 0.95;position:absolute;top:0px;left:0px;width:100%;height:100%;z-index:3;background-color:#333;overflow:hidden" id="loading"></div>';
+    content += '<div id="loadingimg" style="left:50%;top:50%;margin-left:-60px;margin-top:-50px;position:absolute;z-index:4;text-align:center;font-size:1.4em;color:#fff;"><img src="loading.gif"/><br/><br/>Loading stream graph</div>';
     $('#container').html(content);
 }
 
 _STREAMGRAPH.error = function(a,b,c) {
   alert('error');
+}
+
+_STREAMGRAPH.checkLoadCount = function() {
+    if (_STREAMGRAPH.loadcnt == 4) {
+        $('#loading').fadeOut();
+        $('#loadingimg').fadeOut();
+    }
 }
 
 _STREAMGRAPH.loadYears = function() {
@@ -66,9 +77,13 @@ _STREAMGRAPH.loadYears = function() {
                 _STREAMGRAPH.data.years[x[i].key.value][a] = x[i].count.value;
               }
           }
+          _STREAMGRAPH.loadcnt++;
+          _STREAMGRAPH.checkLoadCount();
       },
       error: function(a,b,c) {
 	  _STREAMGRAPH.error(a,b,c);
+    _STREAMGRAPH.loadcnt++;
+          _STREAMGRAPH.checkLoadCount();
       }
   });
 }
@@ -93,9 +108,13 @@ _STREAMGRAPH.loadAuthors = function() {
                 _STREAMGRAPH.data.authors[x[i].key.value][a] = [[x[i].author.value,x[i].count.value]];
               }
           }
+          _STREAMGRAPH.loadcnt++;
+          _STREAMGRAPH.checkLoadCount();
       },
       error: function(a,b,c) {
 	  _STREAMGRAPH.error(a,b,c);
+    _STREAMGRAPH.loadcnt++;
+          _STREAMGRAPH.checkLoadCount();
       }
   });
 }
@@ -119,9 +138,13 @@ _STREAMGRAPH.loadTitles = function() {
                 _STREAMGRAPH.data.titles[x[i].key.value][a] = [[x[i].title.value]];
               }
           }
+          _STREAMGRAPH.loadcnt++;
+          _STREAMGRAPH.checkLoadCount();
       },
       error: function(a,b,c) {
-	  _STREAMGRAPH.error(a,b,c);
+	       _STREAMGRAPH.error(a,b,c);
+         _STREAMGRAPH.loadcnt++;
+         _STREAMGRAPH.checkLoadCount();
       }
   });
 }
@@ -146,9 +169,13 @@ _STREAMGRAPH.loadCountries = function() {
                 _STREAMGRAPH.data.countries[x[i].key.value][a] = [[x[i].org.value,x[i].count.value]];
               }
           }
+          _STREAMGRAPH.loadcnt++;
+          _STREAMGRAPH.checkLoadCount();
       },
       error: function(a,b,c) {
 	  _STREAMGRAPH.error(a,b,c);
+    _STREAMGRAPH.loadcnt++;
+          _STREAMGRAPH.checkLoadCount();
       }
   });
 }
@@ -181,7 +208,7 @@ _STREAMGRAPH.loadAuthors();
 _STREAMGRAPH.loadTitles();
 _STREAMGRAPH.loadCountries();
 
-var map = new Datamap({element: document.getElementById('map')});
+var map = new Datamap({element: document.getElementById('map'),fills: {defaultFill: "#333"}});
 
 var datearray = [];
 var colorrange = [];
@@ -189,33 +216,6 @@ var authors = {};
 var years = {};
 var title = {};
 
-/*var worldMap = SimpleMapD3({
-    container: '#map',
-    datasource: 'world-population.geo.json',
-    projection: 'nellHammer',
-    colorOn: true,
-    colorProperty: 'POP2005',
-    colorSet: 'Reds',
-    colorScale: 'quantize',
-    tooltipOn: false,
-    //graticuleOn: false,
-    //canvasDragOn: true,
-    globeOn: false,
-    legendOn: false,
-    startManually: true
-  }).start();
-*/
-$('body').on('click',function() {
-  for(var i in countries) {
-    var y = _STREAMGRAPH.data.countries;
-    if (countries[i].countryName == "Canada") {
-	var x = {};
-	x[countries[i].iso3] = "#fff";
-        map.updateChoropleth(x);
-    }
-  }
-
-});
   
 function chart(csvpath, color) {
 
@@ -223,10 +223,12 @@ strokecolor = "#000000";
 
 var format = d3.time.format("%Y");
 
-var width = document.body.clientWidth - 300;
-var height = document.body.clientHeight / 2 - 20;
+var width = document.body.clientWidth - 310;
+var height = document.body.clientHeight / 2 - 30;
 
-$('#map').width(width+66);
+$('#map').css("width",width/2);
+$('#map').css("left",width/2-300);
+$('#timewrapper').css('width', width);
 
 var tooltip = d3.select("body")
     .append("div")
@@ -287,7 +289,7 @@ var graph = d3.csv(csvpath, function(data) {
       dataJSON[d.key][d.date] = d.value;
       data_years.push(d.date);
   });
-  data = backFillData(dataJSON, data_years);
+  data = backFillData(dataJSON, data_years, width);
   data.forEach(function(d) {
     //d.date = format.parse(d.date);
     d.date = d.date;
@@ -295,7 +297,7 @@ var graph = d3.csv(csvpath, function(data) {
   });
 
   var unique = data_years.filter( onlyUnique ); 
-  unique.push("2001");
+  unique.push("2008");
   unique.sort();
   intyears = [];
   for(var prop in unique) {
@@ -420,10 +422,10 @@ var xAxis = d3.svg.axis()
 
 }
 
-function backFillData(data, data_years) {
+function backFillData(data, data_years, width) {
 
   var unique = data_years.filter( onlyUnique ); 
-  unique.push("2001");
+  unique.push("2008");
   unique.sort();
   var outputdata = [];
   
@@ -435,6 +437,12 @@ function backFillData(data, data_years) {
             outputdata.push({'key':prop,'year':unique[i],'date':i,'value':0});
     }
   }
+  var content = "";
+  for(var i=0;i<unique.length;i++) {
+    content += "<span style='position:absolute;color:#666;left:"+((i*width/(unique.length-1))*0.97)+"px'>"+unique[i]+"</span>";
+  }
+  $('#timewrapper').html(content);
+
   return outputdata;
 }
 function onlyUnique(value, index, self) { 
@@ -528,19 +536,26 @@ function displayDetails(key, date) {
   for(var prop in _STREAMGRAPH.data.countries) {
     if (key == prop) {
       for(var p in _STREAMGRAPH.data.countries[prop]) {
-	if (date == p) {
-	  for(var i=0;i<_STREAMGRAPH.data.countries[prop][p].length;i++) {
-	    for(var j=0;j<countries.length;j++) {
-	      if(countries[j].countryName == _STREAMGRAPH.data.countries[prop][p][i][0]) {
-		var x = {};
-		x[countries[j].iso3] = "#fff";
-		map.updateChoropleth(x);
-	      }
-	    }
-	  }
-	}
+      	if (date == p) {
+          var x = {};
+          for(var j=0;j<countries.length;j++) {
+            x[countries[j].iso3] = "#333";
+      	    for(var i=0;i<_STREAMGRAPH.data.countries[prop][p].length;i++) {
+              
+      	      if(countries[j].countryName == _STREAMGRAPH.data.countries[prop][p][i][0]) {
+                var c = _STREAMGRAPH.data.countries[prop][p][i][1] * 10;
+            		x[countries[j].iso3] = "hsl(238, 50%, "+c+"%)";
+              }
+      	    }
+      	  }
+          map.updateChoropleth(x);
+          break;
+      	}
+        
       }
+      break;
     }
+    
    }
 }
 
